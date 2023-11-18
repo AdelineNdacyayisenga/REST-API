@@ -7,23 +7,38 @@ const router = express.Router();
 const { User } = require('./models');
 const { Course } = require('./models');
 const { asyncHandler } = require('./middleware/async-handler');
+const { authenticateUser } = require('./middleware/auth-user');
 
 //USER ROUTES
 
 //Route that returns all properties and values of currently authenticated user
 //200 code
-router.get('/users', asyncHandler(async (req, res) => {
+router.get('/users', authenticateUser, asyncHandler(async (req, res) => {
+    const user = req.currentUser;
+
+    //const users = await User.findAll();
+    res.json({
+        id: user.id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        emailAddress: user.emailAddress,
+        
+    });
+}));
+
+//get users list (PERSONAL FOR TESTING)
+router.get('/usersList', asyncHandler(async (req, res) => {
     const users = await User.findAll();
-    res.json(users);
+    res.json({
+        users
+    })
 }));
 
 //Route that will create a new user
 router.post('/users', asyncHandler(async (req, res) => {
     try {
         await User.create(req.body);
-        res.status(201).location('/').json({
-            message: "User account successfully created"
-        });
+        res.status(201).location('/').end();
     } catch(error) {
         console.log('ERROR', error.name);
 
@@ -41,13 +56,19 @@ router.post('/users', asyncHandler(async (req, res) => {
 //Get route that returns all courses with User associated with each course
 //200 status code
 router.get('/courses', asyncHandler(async (req, res) => {
-    const courses = await Course.findAll({ //returns user related to the course
-        include: [
-            {
-                model: User,
+    const courses = await Course.findAll(
+        { //returns user related to the course
+            include: [
+                {
+                    model: User,
+                    as: 'courseMaker'
+                }
+            ],
+            attributes: {
+                exclude: ['createdAt', 'updatedAt']
             }
-        ]
-    });
+        }
+    );
     if(courses) {
         res.json(courses);
     } else {
@@ -58,7 +79,17 @@ router.get('/courses', asyncHandler(async (req, res) => {
 // Get route that returns the corresponding course with user associated with that course
 //200 status code
 router.get('/courses/:id', asyncHandler(async (req, res) => {
-    const courses = await Course.findAll();
+    const courses = await Course.findAll({
+        include: [
+            {
+                model: User,
+                as: 'courseMaker'
+            }
+        ],
+        attributes: {
+            exclude: ['createdAt', 'updatedAt']
+        }
+    });
     const course = courses.find(course => course.id == req.params.id);
     if (course) {
         res.json(course);
@@ -69,12 +100,12 @@ router.get('/courses/:id', asyncHandler(async (req, res) => {
 
 //create a new course; set location header to the URI for the newly created course
 //201 status code (no content returned)
-router.post('/courses', asyncHandler(async (req, res) => {
+router.post('/courses', authenticateUser, asyncHandler(async (req, res) => {
     try {
-        await Course.create(req.body);
-        res.status(201).location('/courses').json({
-            message: "Course successfully created"
-        });
+        
+        const course = await Course.create(req.body);
+
+        res.status(201).location(`/courses/${course.id}`).end();
     } catch(error) {
         console.log('ERROR', error.name);
 
@@ -89,14 +120,44 @@ router.post('/courses', asyncHandler(async (req, res) => {
 
 //update the corresponding course
 //204 status code (no content)
-router.put('/courses/:id', asyncHandler(async (req, res) => {
-
+router.put('/courses/:id', authenticateUser, asyncHandler(async (req, res) => {
+    const course = await Course.findByPk(req.params.id);
+    
+    if (course) {
+        //to update the course, you have to be the owner
+        if(course.userId == req.currentUser.id) {
+            if(req.body.title && req.body.description) {
+                await course.update(req.body);
+                res.status(204).end();
+            } else {
+                res.status(400).json({message: "Please provide values for both title and description, for they are required"});
+            }
+        } else {
+            res.status(403).json({ message: "To update the course, you have to be the owner"});
+        }
+        
+         
+    } else {
+        res.status(404).json({message: "Course not found"});
+    }
 }));
 
 //delete corresponding course
 //204 returned (no content)
-router.delete('/courses/:id', asyncHandler(async (req, res) => {
+router.delete('/courses/:id', authenticateUser, asyncHandler(async (req, res) => {
+    const course = await Course.findByPk(req.params.id);
 
+    if (course) {
+        if(course.userId == req.currentUser.id) {
+            await course.destroy();
+            res.status(204).end();
+        } else {
+            res.status(403).json({ message: "To delete the course, you have to be the owner"});
+        }
+        
+    } else {
+        res.status(404).json({message: "Course not found"});
+    }
 }));
 
 

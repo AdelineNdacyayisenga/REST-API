@@ -12,7 +12,7 @@ const { authenticateUser } = require('./middleware/auth-user');
 //USER ROUTES
 
 //Route that returns all properties and values of currently authenticated user
-//200 code
+//200 code. To access user details, you have to be authenticated
 router.get('/users', authenticateUser, asyncHandler(async (req, res) => {
     const user = req.currentUser;
 
@@ -99,7 +99,7 @@ router.get('/courses/:id', asyncHandler(async (req, res) => {
 }));
 
 //create a new course; set location header to the URI for the newly created course
-//201 status code (no content returned)
+//201 status code (no content returned). Authentication is required to create a course
 router.post('/courses', authenticateUser, asyncHandler(async (req, res) => {
     try {
         
@@ -118,7 +118,7 @@ router.post('/courses', authenticateUser, asyncHandler(async (req, res) => {
     }
 }));
 
-//update the corresponding course
+//update the corresponding course. Authentication is required to update a course and you have to be the course's maker to update it
 //204 status code (no content)
 router.put('/courses/:id', authenticateUser, asyncHandler(async (req, res) => {
     const course = await Course.findByPk(req.params.id);
@@ -142,7 +142,7 @@ router.put('/courses/:id', authenticateUser, asyncHandler(async (req, res) => {
     }
 }));
 
-//delete corresponding course
+//delete corresponding course. Authentication is required to delete a course and you have to be the course's maker to delete it
 //204 returned (no content)
 router.delete('/courses/:id', authenticateUser, asyncHandler(async (req, res) => {
     const course = await Course.findByPk(req.params.id);
@@ -159,6 +159,5 @@ router.delete('/courses/:id', authenticateUser, asyncHandler(async (req, res) =>
         res.status(404).json({message: "Course not found"});
     }
 }));
-
 
 module.exports = router;

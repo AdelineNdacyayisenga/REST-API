@@ -16,7 +16,7 @@ exports.authenticateUser = async (req, res, next) => {
     if(credentials) {
         const user = await User.findOne({
             where: {
-                emailAddress: credentials.name
+                emailAddress: credentials.name //printed out the credentials to know the variable name
             }
         });
 
@@ -40,7 +40,7 @@ exports.authenticateUser = async (req, res, next) => {
 
     if (message) {
         console.warn(message);
-        res.status(404).json({ message: 'Access Denied'});
+        res.status(401).json({ message: 'Access Denied'});
     } else {
         next();
     }

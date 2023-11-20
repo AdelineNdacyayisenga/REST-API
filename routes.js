@@ -61,7 +61,8 @@ router.get('/courses', asyncHandler(async (req, res) => {
             include: [
                 {
                     model: User,
-                    as: 'courseMaker'
+                    as: 'courseMaker',
+                    attributes: ['id', 'firstName', 'lastName', 'emailAddress']
                 }
             ],
             attributes: {
@@ -83,7 +84,8 @@ router.get('/courses/:id', asyncHandler(async (req, res) => {
         include: [
             {
                 model: User,
-                as: 'courseMaker'
+                as: 'courseMaker',
+                attributes: ['id', 'firstName', 'lastName', 'emailAddress']
             }
         ],
         attributes: {
@@ -122,7 +124,7 @@ router.post('/courses', authenticateUser, asyncHandler(async (req, res) => {
 //204 status code (no content)
 router.put('/courses/:id', authenticateUser, asyncHandler(async (req, res) => {
     const course = await Course.findByPk(req.params.id);
-    
+    const errors = [];
     if (course) {
         //to update the course, you have to be the owner
         if(course.userId == req.currentUser.id) {
@@ -130,15 +132,18 @@ router.put('/courses/:id', authenticateUser, asyncHandler(async (req, res) => {
                 await course.update(req.body);
                 res.status(204).end();
             } else {
-                res.status(400).json({message: "Please provide values for both title and description, for they are required"});
+                errors.push("Please provide values for both title and description, for they are required");
+                res.status(400).json({ errors });
             }
         } else {
-            res.status(403).json({ message: "To update the course, you have to be the owner"});
+            errors.push("To update the course, you have to be the owner");
+            res.status(403).json({ errors });
         }
         
          
     } else {
-        res.status(404).json({message: "Course not found"});
+        errors.push("Course not found");
+        res.status(404).json({ errors });
     }
 }));
 

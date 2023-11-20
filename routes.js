@@ -132,7 +132,8 @@ router.put('/courses/:id', authenticateUser, asyncHandler(async (req, res) => {
                 await course.update(req.body);
                 res.status(204).end();
             } else {
-                errors.push("Please provide values for both title and description, for they are required");
+                errors.push("Please provide the value for title, for it is required");
+                errors.push("Please provide the value for description, for it is required");
                 res.status(400).json({ errors });
             }
         } else {

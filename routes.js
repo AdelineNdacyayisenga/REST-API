@@ -124,27 +124,26 @@ router.post('/courses', authenticateUser, asyncHandler(async (req, res) => {
 //204 status code (no content)
 router.put('/courses/:id', authenticateUser, asyncHandler(async (req, res) => {
     const course = await Course.findByPk(req.params.id);
-    const errors = [];
     if (course) {
         //to update the course, you have to be the owner
         if(course.userId == req.currentUser.id) {
-            if(req.body.title && req.body.description) {
+            try {
                 await course.update(req.body);
                 res.status(204).end();
-            } else {
-                errors.push("Please provide the value for title, for it is required");
-                errors.push("Please provide the value for description, for it is required");
-                res.status(400).json({ errors });
+            } catch (error) {
+                if(error.name === 'SequelizeValidationError') {
+                    const errors = error.errors.map(err => err.message);
+                    res.status(400).json({ errors });
+                } else {
+                    throw error;
+                }
             }
         } else {
-            errors.push("To update the course, you have to be the owner");
-            res.status(403).json({ errors });
+            res.status(403).json({ message: "To update the course, you have to be the owner" });
         }
-        
          
     } else {
-        errors.push("Course not found");
-        res.status(404).json({ errors });
+        res.status(404).json({ message: "Course Not Found" });
     }
 }));
 
